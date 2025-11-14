@@ -7,7 +7,9 @@ set -euo pipefail
 
 echo "=== Arkenfox Firefox Profile Setup ==="
 
-# Step 1: Detect Firefox base directory
+BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Detect Firefox base directory
 if [ -d "$HOME/.var/app/org.mozilla.firefox/.mozilla/firefox" ]; then
     PROFILE_BASE="$HOME/.var/app/org.mozilla.firefox/.mozilla/firefox"
     FIREFOX_CMD="flatpak run org.mozilla.firefox"
@@ -21,13 +23,20 @@ else
     exit 1
 fi
 
-# Step 2: Create new random profile
-RANDOM_ID=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 8 || true)
-[ -z "$RANDOM_ID" ] && RANDOM_ID=$RANDOM
-PROFILE_NAME="arkenfox_${RANDOM_ID}"
+# Create new profile
+PROFILE_NAME="${1:-}"
+
+if [[ -z "$PROFILE_NAME" ]]; then
+    echo "No profile name provided, generating one..."
+    RANDOM_ID=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 8 || true)
+    [ -z "$RANDOM_ID" ] && RANDOM_ID=$RANDOM
+    PROFILE_NAME="arkenfox_${RANDOM_ID}"
+fi
+
+echo "Using profile name: $PROFILE_NAME"
 
 echo "Creating new Firefox profile: $PROFILE_NAME"
-$FIREFOX_CMD --headless -CreateProfile "$PROFILE_NAME" >/dev/null 2>&1 || true
+$FIREFOX_CMD --headless -CreateProfile "$PROFILE_NAME" >/dev/null 2>&1
 
 # Step 3: Wait for Firefox to register profile in profiles.ini
 echo "Waiting for Firefox to register profile..."
@@ -62,22 +71,29 @@ echo "Profile directory detected: $PROFILE_DIR"
 TMP_DIR=$(mktemp -d)
 cd "$TMP_DIR"
 echo "Downloading Arkenfox user.js..."
-curl -sLO https://github.com/arkenfox/user.js/archive/refs/heads/master.tar.gz
+curl -LO https://github.com/arkenfox/user.js/archive/refs/heads/master.tar.gz
 tar -xzf master.tar.gz --strip-components=1
 
 # Step 6: Copy Arkenfox files to profile directory
 cp user.js "$PROFILE_DIR/"
-cp prefsCleaner.sh "$PROFILE_DIR/" || true
-cp updater.sh "$PROFILE_DIR/" || true
+cp prefsCleaner.sh "$PROFILE_DIR/"
+cp updater.sh "$PROFILE_DIR/"
 echo "Copied Arkenfox files to $PROFILE_DIR"
+
+# Overrides
+OVERRIDES="$BASE_DIR/user-overrides.js"
+
+if [[ -f "$OVERRIDES" ]]; then
+    echo "Found user-overrides.js in base directory"
+    cp "$OVERRIDES" "$PROFILE_DIR/"
+else
+    echo "No local user-overrides.js found — continuing..."
+fi
+
 
 # Step 7: Apply user.js (non-interactive)
 cd "$PROFILE_DIR"
-if grep -q 'no-interactive' updater.sh 2>/dev/null; then
-    bash updater.sh --no-interactive || true
-else
-    yes | bash updater.sh || true
-fi
+./updater.sh -s
 echo "Arkenfox configuration applied."
 
 # Step 8: Cleanup temporary files

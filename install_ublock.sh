@@ -59,22 +59,43 @@ if [ ${#PROFILE_PATHS[@]} -eq 0 ]; then
   exit 1
 fi
 
-# --- Display profiles (start numbering from 1, names only) ---
-echo "Available Firefox profiles:"
-echo
-for ((n=0; n<${#PROFILE_PATHS[@]}; n++)); do
-  num=$((n+1))
-  echo "[$num] ${PROFILE_NAMES[$n]}"
-done
+# --- Determine which profile to use ---
+if [ -n "$1" ]; then
+  # Argument provided: find matching profile
+  PROFILE_ARG="$1"
+  INDEX=-1
+  for i in "${!PROFILE_NAMES[@]}"; do
+    if [ "${PROFILE_NAMES[$i]}" = "$PROFILE_ARG" ]; then
+      INDEX=$i
+      break
+    fi
+  done
 
-echo
-read -rp "Enter the number of the profile to install uBlock Origin: " CHOICE
+  if [ $INDEX -eq -1 ]; then
+    echo "❌ Profile '$PROFILE_ARG' not found."
+    echo "Available profiles:"
+    for ((n=0; n<${#PROFILE_NAMES[@]}; n++)); do
+      echo "  ${PROFILE_NAMES[$n]}"
+    done
+    exit 1
+  fi
+else
+  # No argument: prompt user
+  echo "Available Firefox profiles:"
+  echo
+  for ((n=0; n<${#PROFILE_PATHS[@]}; n++)); do
+    num=$((n+1))
+    echo "[$num] ${PROFILE_NAMES[$n]}"
+  done
+  echo
+  read -rp "Enter the number of the profile to install uBlock Origin: " CHOICE
 
-# Convert to zero-based index
-INDEX=$((CHOICE-1))
-if [[ -z "${PROFILE_PATHS[$INDEX]}" || $CHOICE -le 0 ]]; then
-  echo "Invalid choice."
-  exit 1
+  # Convert to zero-based index
+  INDEX=$((CHOICE-1))
+  if [[ -z "${PROFILE_PATHS[$INDEX]}" || $CHOICE -le 0 ]]; then
+    echo "Invalid choice."
+    exit 1
+  fi
 fi
 
 PROFILE_FULL_PATH="$PROFILES_DIR/${PROFILE_PATHS[$INDEX]}"
@@ -101,3 +122,4 @@ echo "✅ uBlock Origin installed successfully!"
 echo "Location: $EXT_DIR/$EXTENSION_ID.xpi"
 echo
 echo "Restart Firefox to activate the extension."
+
