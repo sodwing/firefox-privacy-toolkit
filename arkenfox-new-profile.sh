@@ -30,7 +30,7 @@ if [[ -z "$PROFILE_NAME" ]]; then
     echo "No profile name provided, generating one..."
     RANDOM_ID=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 8 || true)
     [ -z "$RANDOM_ID" ] && RANDOM_ID=$RANDOM
-    PROFILE_NAME="arkenfox_${RANDOM_ID}"
+    PROFILE_NAME="FPT_${RANDOM_ID}"
 fi
 
 echo "Using profile name: $PROFILE_NAME"
@@ -53,9 +53,9 @@ else
     PROFILE_DIR=$(find "$PROFILE_BASE" -maxdepth 1 -type d -name "*.$PROFILE_NAME" -print -quit || true)
 fi
 
-# If still not found, pick the most recently created subfolder matching arkenfox_*
+# If still not found, pick the most recently created subfolder matching FPT_*
 if [ -z "$PROFILE_DIR" ] || [ ! -d "$PROFILE_DIR" ]; then
-    PROFILE_DIR=$(find "$PROFILE_BASE" -maxdepth 1 -type d -name "*.arkenfox_*" -printf "%T@ %p\n" 2>/dev/null | sort -nr | head -n1 | cut -d' ' -f2)
+    PROFILE_DIR=$(find "$PROFILE_BASE" -maxdepth 1 -type d -name "*.FPT*" -printf "%T@ %p\n" 2>/dev/null | sort -nr | head -n1 | cut -d' ' -f2)
 fi
 
 if [ -z "$PROFILE_DIR" ] || [ ! -d "$PROFILE_DIR" ]; then
